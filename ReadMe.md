@@ -1,10 +1,8 @@
 ## VSG Blast Shiny App
 
+**THIS IS A WORK IN PROGRESS** 
+
 Quick Note: As of now this App only runs locally because it relies on BLAST being installed locally. 
-
-Link to live App ( broken :( ):  https://abeav.shinyapps.io/final_project/
-
-Link to video: https://drive.google.com/file/d/1vU3dod60CzUl2H2YgBEne2gtHtjWAAxv/view?usp=sharing
 
 This app allows users to specifically BLAST, blastn and blastp, inputed sequences against all Variant Surgace Glycoproteins that have been sequenced (to our knowledge).This blast app uses a database of ~13,000 complete and partial VSGs. The database includes all VSG CDSs and protein sequences form all Trypanasoma species and from all available source. In addition, this database includes unpublished contigs assembled from PacBio sequencing of the EATRO 1125 strain of Trypanosoma brucei. 
 
