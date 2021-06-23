@@ -1,0 +1,219 @@
+---
+title: "VSG Blast"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    theme: bootstrap
+runtime: shiny
+---
+
+```{r setup, echo=FALSE}
+# This app requires some R Bioconda packages and some github packages. Below is how I installed them 
+
+#install.packages("BiocManager")
+#BiocManager::install("BiocGenerics")
+#BiocManager::install("Biostrings")
+
+#devtools::install_github("mhahsler/rBLAST")
+
+#install.packages("seqinr")
+
+
+# Load libraries
+library(flexdashboard)
+library(tidyverse)
+library(devtools)
+library(shiny)
+library(BiocGenerics)
+library(Biostrings)
+library(rBLAST)
+library(seqinr)
+```
+
+```{r}
+dna_seqs <- read.fasta("vsg_db/All_VSG_dna.fasta", as.string = TRUE)
+```
+
+Blast App
+===================================== 
+
+Inputs {.sidebar}
+-------------------------------------
+
+```{r}
+
+textAreaInput(inputId = "input_seq", label = h3("Input fasta to blast"), placeholder  = ">Input 1 or more sequences in fasta format", width = "100%", height = "200px" )
+
+selectInput("blast_type", h3("Select Blast Type"), choices = c("blastn", "blastp"))
+
+submitButton("Submit")
+```
+
+<br><br>
+
+```{r}
+uiOutput("downloadUI")
+```
+
+
+```{r}
+blast_results <- reactive({
+  input_seq <- as.character(input$input_seq)
+  if (input$blast_type == "blastp") {
+    vsg_db <- blast(db="vsg_db/All_VSG_prot.fasta", 
+                       type = "blastp")
+    seq <- AAStringSet(input_seq)
+  } else {
+    vsg_db <- blast(db = "vsg_db/All_VSG_dna.fasta", 
+                      type = "blastn")
+    seq <- AAStringSet(input_seq, use.names = FALSE)
+  }
+  
+  
+  blast_results_tab <- predict(vsg_db, seq,BLAST_args = "-task blastn-short")
+  blast_results_tab
+  
+  if (nrow(blast_results_tab) == 0 ) {
+    print("Sorry! No BLAST results.")
+  } else {
+    ids <- blast_results_tab$SubjectID
+
+    output_seqs <- tibble(SubjectID = "", Annotation = "", SubjectSequence= "")
+
+    for (id in ids) {
+      new <-tibble(SubjectID = id,
+                   Annotation= as.character(attr(dna_seqs[[id]],"Annot")),
+                   SubjectSequence = as.character(dna_seqs[[id]][1]))
+      output_seqs <- full_join(output_seqs, new)
+    }
+   output_seqs <-  output_seqs[-1,]
+   blast_results_tab <- left_join(blast_results_tab, output_seqs)
+   blast_results_tab
+  }
+  
+})
+
+
+hit_count <- reactive({
+  input_seq <- as.character(input$input_seq)
+  if (input$blast_type == "blastp") {
+    vsg_db <- blast(db="vsg_db/All_VSG_prot.fasta", 
+                       type = "blastp")
+    seq <- AAStringSet(input_seq)
+  } else {
+    vsg_db <- blast(db = "vsg_db/All_VSG_dna.fasta", 
+                      type = "blastn")
+    seq <- AAStringSet(input_seq, use.names = FALSE)
+  }
+  
+  
+  blast_results_tab <- predict(vsg_db, seq, BLAST_args = "-task blastn-short")
+  blast_results_tab <- blast_results_tab %>%
+    group_by(QueryID) %>% 
+    dplyr::count() %>%
+    dplyr::rename(`Number of Blast Hits` = n)
+  blast_results_tab
+})
+
+histogram <- reactive({
+  input_seq <- as.character(input$input_seq)
+  if (input$blast_type == "blastp") {
+    vsg_db <- blast(db="vsg_db/All_VSG_prot.fasta", 
+                       type = "blastp")
+    seq <- AAStringSet(input_seq)
+  } else {
+    vsg_db <- blast(db = "vsg_db/All_VSG_dna.fasta", 
+                      type = "blastn")
+    seq <- AAStringSet(input_seq, use.names = FALSE)
+  }
+  
+  blast_results_tab <- predict(vsg_db, seq, BLAST_args = "-task blastn-short")
+  blast_results_histo <- blast_results_tab %>%
+    ggplot(aes(x = Perc.Ident)) +
+    geom_histogram(alpha = .75) +
+    theme_light() +
+    xlab("Percent Identity")
+  blast_results_histo
+  
+})
+
+```
+
+
+```{r}
+
+output$downloadUI <- renderUI( {
+  downloadButton("downBtn", "Download Blast Results!")
+})
+
+output$downBtn <- downloadHandler(
+  filename = function() {
+    "VSG_blast_results.csv"
+  },
+  content = function(file) {
+    write.csv(blast_results(), file, row.names = FALSE)
+  }
+)
+
+```
+
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Balst Ouput Table
+
+```{r}
+
+renderTable({
+  blast_results()
+})
+
+```
+
+
+Row {data-width=650}
+-----------------------------------------------------------------------
+
+### Number of hits
+```{r}
+
+renderTable({
+  hit_count()
+})
+
+```
+
+### Histogram
+
+```{r}
+renderPlot({
+  histogram()
+})
+```
+
+
+VSG Sequence Info
+===================================== 
+
+
+#### Sequence Database Information
+
+This blast app uses a database of ~13,000 complete and partial VSGs. The database includes all VSG CDSs and protein sequences form all Trypanasoma species and from all available source. In addition, this database includes unpublished contigs assembled from PacBio sequencing of the EATRO 1125 strain of Trypanosoma brucei. 
+
+
+#### Sequence Credit
+
+These sequences were compiled and annotated by George Cross and his research group at The Rockefeller University. His website and research can be found [here](https://tryps.rockefeller.edu/).
+
+
+#### Sequence Download
+
+All DNA and protein sequence fastas can be downloaded [here](https://tryps.rockefeller.edu/Sequences.html). This website also has additional information about Trypanasoma strains and sequencing sources. 
+
+
+
+
+
