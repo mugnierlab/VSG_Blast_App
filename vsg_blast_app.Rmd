@@ -71,7 +71,7 @@ blast_results <- reactive({
   }
   
   
-  blast_results_tab <- predict(vsg_db, seq,BLAST_args = "-task blastn-short")
+  blast_results_tab <- predict(vsg_db, seq)
   blast_results_tab
   
   if (nrow(blast_results_tab) == 0 ) {
@@ -108,7 +108,7 @@ hit_count <- reactive({
   }
   
   
-  blast_results_tab <- predict(vsg_db, seq, BLAST_args = "-task blastn-short")
+  blast_results_tab <- predict(vsg_db, seq)
   blast_results_tab <- blast_results_tab %>%
     group_by(QueryID) %>% 
     dplyr::count() %>%
@@ -128,7 +128,7 @@ histogram <- reactive({
     seq <- AAStringSet(input_seq, use.names = FALSE)
   }
   
-  blast_results_tab <- predict(vsg_db, seq, BLAST_args = "-task blastn-short")
+  blast_results_tab <- predict(vsg_db, seq)
   blast_results_histo <- blast_results_tab %>%
     ggplot(aes(x = Perc.Ident)) +
     geom_histogram(alpha = .75) +
@@ -138,6 +138,7 @@ histogram <- reactive({
   
 })
 
+# argument for short sequence blast, BLAST_args = "-task blastn-short"
 ```
 
 
