@@ -47,6 +47,8 @@ textAreaInput(inputId = "input_seq", label = h3("Input fasta to blast"), placeho
 
 selectInput("blast_type", h3("Select Blast Type"), choices = c("blastn", "blastp"))
 
+checkboxInput("checkbox", "Short sequence blast", value = FALSE)
+
 submitButton("Submit")
 ```
 
@@ -70,8 +72,11 @@ blast_results <- reactive({
     seq <- AAStringSet(input_seq, use.names = FALSE)
   }
   
-  
-  blast_results_tab <- predict(vsg_db, seq)
+  if (input$checkbox == "TRUE") {
+    blast_results_tab <- predict(vsg_db, seq, BLAST_args = "-task blastn-short")
+  } else {
+    blast_results_tab <- predict(vsg_db, seq)
+  }
   blast_results_tab
   
   if (nrow(blast_results_tab) == 0 ) {
@@ -108,7 +113,11 @@ hit_count <- reactive({
   }
   
   
-  blast_results_tab <- predict(vsg_db, seq)
+  if (input$checkbox == "TRUE") {
+    blast_results_tab <- predict(vsg_db, seq, BLAST_args = "-task blastn-short")
+  } else {
+    blast_results_tab <- predict(vsg_db, seq)
+  }
   blast_results_tab <- blast_results_tab %>%
     group_by(QueryID) %>% 
     dplyr::count() %>%
@@ -128,7 +137,11 @@ histogram <- reactive({
     seq <- AAStringSet(input_seq, use.names = FALSE)
   }
   
-  blast_results_tab <- predict(vsg_db, seq)
+  if (input$checkbox == "TRUE") {
+    blast_results_tab <- predict(vsg_db, seq, BLAST_args = "-task blastn-short")
+  } else {
+    blast_results_tab <- predict(vsg_db, seq)
+  }
   blast_results_histo <- blast_results_tab %>%
     ggplot(aes(x = Perc.Ident)) +
     geom_histogram(alpha = .75) +
